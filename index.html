@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="5S Számkereső Szimulátor - Interaktív játék a 5S módszertan megértéséhez">
+    <title>5S Számkereső Szimulátor</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body role="application" aria-label="5S Számkereső Szimulátor">
+
+<!-- Skip link -->
+<a href="#main-content" class="skip-link">Ugrás a fő tartalomhoz</a>
+
+<!-- HEADER -->
+<header class="header">
+    <div class="header-left">
+        <h1 data-i18n="title">5S Számkereső</h1>
+        <span class="header-subtitle" data-i18n="subtitle">Munkahelyi szervezés szimulátor</span>
+    </div>
+    <div class="header-center">
+        <span class="round-badge" id="roundBadge">1. FORDULÓ - Káosz</span>
+        <div class="s-indicator" id="sIndicator">
+            <span class="s-step" data-s="1" title="Seiri">S1</span>
+            <span class="s-step" data-s="2" title="Seiton">S2</span>
+            <span class="s-step" data-s="3" title="Seiso">S3</span>
+            <span class="s-step" data-s="4" title="Seiketsu">S4</span>
+            <span class="s-step" data-s="5" title="Shitsuke">S5</span>
+        </div>
+    </div>
+    <div class="header-right">
+        <div class="timer" id="timer">0.0</div>
+        <button class="btn-icon" id="btnRestart" onclick="restartGame()" title="Újraindítás">↺</button>
+        <button class="btn-icon" id="btnLang" onclick="toggleLanguage()" title="Switch to English">🇬🇧</button>
+    </div>
+</header>
+
+<!-- CONTROLS -->
+<nav class="controls" role="toolbar" aria-label="Játék vezérlés">
+    <button class="btn btn-start" id="btnStart" onclick="startGame()">▶️ <span data-i18n="btnStart">Indítás</span></button>
+    <button class="btn btn-pause" id="btnPause" onclick="togglePause()" style="display:none;">⏸️ <span data-i18n="btnPause">Szünet</span></button>
+    <button class="btn btn-reset" id="btnReset" onclick="resetRound()" style="display:none;">🔄 <span data-i18n="btnReset">Újra</span></button>
+    <button class="btn btn-stats" id="btnStats" onclick="showStats()">📊 <span data-i18n="btnStats">Statisztika</span></button>
+    <button class="btn btn-settings" id="btnSettings" onclick="toggleSettings()">⚙️ <span data-i18n="btnSettings">Beállítások</span></button>
+    <button class="btn btn-sound" id="btnSound" onclick="toggleSound()">🔊 <span data-i18n="btnSoundOn">Hang</span></button>
+</nav>
+
+<!-- SETTINGS PANEL -->
+<section class="settings-panel" id="settingsPanel">
+    <div class="setting-group">
+        <label for="numberCount" data-i18n="numberCount">Számok mennyisége:</label>
+        <select id="numberCount">
+            <option value="20">20 (könnyű)</option>
+            <option value="30" selected>30 (normál)</option>
+            <option value="40">40 (nehéz)</option>
+            <option value="50">50 (szakértő)</option>
+        </select>
+    </div>
+    <div class="setting-group">
+        <label for="clutterLevel" data-i18n="clutterLevel">Zavaró elemek:</label>
+        <select id="clutterLevel">
+            <option value="low">Kevés</option>
+            <option value="medium" selected>Közepes</option>
+            <option value="high">Sok</option>
+        </select>
+    </div>
+</section>
+
+<!-- MAIN GAME AREA -->
+<main id="main-content" class="game-container">
+    <!-- Progress Panel (left side) -->
+    <aside class="progress-panel" id="progressPanel">
+        <div class="target-display">
+            <span class="target-label" data-i18n="nextNumber">Következő szám:</span>
+            <span class="target-number" id="targetNumber">1</span>
+        </div>
+        <div class="found-display">
+            <span id="foundCount">0</span> / <span id="totalCount">30</span>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="error-display">
+            <span class="error-label" data-i18n="errors">Hibák:</span>
+            <span class="error-value" id="errorCount">0</span>
+        </div>
+    </aside>
+
+    <!-- Workspace (center) -->
+    <div class="workspace-wrapper">
+        <!-- Zone Overlay -->
+        <div class="workspace-overlay zone-overlay" id="zoneOverlay">
+            <div class="zone zone-0"><span class="zone-label">1-8</span></div>
+            <div class="zone zone-1"><span class="zone-label">9-16</span></div>
+            <div class="zone zone-2"><span class="zone-label">17-23</span></div>
+            <div class="zone zone-3"><span class="zone-label">24-30</span></div>
+        </div>
+
+        <!-- Label Overlay -->
+        <div class="workspace-overlay label-overlay" id="labelOverlay">
+            <div class="zone-title zone-title-0">1-8</div>
+            <div class="zone-title zone-title-1">9-16</div>
+            <div class="zone-title zone-title-2">17-23</div>
+            <div class="zone-title zone-title-3">24-30</div>
+        </div>
+
+        <!-- Dirt Overlay -->
+        <div class="workspace-overlay dirt-overlay" id="dirtOverlay"></div>
+
+        <!-- Main Workspace -->
+        <div class="workspace" id="workspace" role="grid" aria-label="Számkereső munkaterület">
+            <!-- Numbers and clutter dynamically generated -->
+        </div>
+    </div>
+
+    <!-- KPI Panel (right side) -->
+    <aside class="kpi-panel" id="kpiPanel">
+        <div class="kpi-card">
+            <span class="kpi-label" data-i18n="time">Idő:</span>
+            <span class="kpi-value" id="kpiTime">0.0</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label" data-i18n="errors">Hibák:</span>
+            <span class="kpi-value kpi-bad" id="kpiErrors">0</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label" data-i18n="score">Pontszám:</span>
+            <span class="kpi-value kpi-good" id="kpiScore">0</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label" data-i18n="improvement">Javulás:</span>
+            <span class="kpi-value" id="kpiImprovement">-</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label" data-i18n="compliance">5S Szint:</span>
+            <span class="kpi-value" id="kpi5sLevel">0%</span>
+        </div>
+    </aside>
+</main>
+
+<!-- INFO TICKER -->
+<footer class="info-ticker">
+    <div class="event-log" id="eventLog" data-i18n="pressStart">Nyomd meg az Indítás gombot!</div>
+    <div class="round-info" id="roundInfo">A munkaterület teljesen rendezetlen. Sok zavaró elem között kell megtalálni a számokat.</div>
+</footer>
+
+<!-- WELCOME OVERLAY -->
+<div class="overlay welcome-overlay visible" id="welcomeOverlay">
+    <div class="overlay-panel welcome-panel">
+        <h2 data-i18n="welcomeTitle">5S Számkereső Szimulátor</h2>
+        <div class="subtitle" data-i18n="welcomeSubtitle">Munkahelyi szervezés játékosan</div>
+
+        <div class="description">
+            <p data-i18n-html="welcomeIntro">Üdvözöllek! Ez a szimulátor segít megérteni a <strong>5S módszertan</strong> erejét egy egyszerű játékon keresztül.</p>
+
+            <p data-i18n-html="welcomeGoal"><strong>A játék:</strong> Keresd meg és kattints a számokra sorrendben (1, 2, 3, ... 30)!</p>
+
+            <p data-i18n="welcomeRounds">Minden forduló egy 5S lépést alkalmaz:</p>
+
+            <ul class="round-list">
+                <li><span class="round-num">1.</span> <strong>Káosz</strong> - Rendezetlen munkaterület</li>
+                <li><span class="round-num">2.</span> <strong>Seiri</strong> (整理) - Szelektálás: felesleges elemek eltávolítása</li>
+                <li><span class="round-num">3.</span> <strong>Seiton</strong> (整頓) - Sorbarendezés: logikus elhelyezés</li>
+                <li><span class="round-num">4.</span> <strong>Seiso</strong> (清掃) - Söprés: tisztítás, láthatóság</li>
+                <li><span class="round-num">5.</span> <strong>Seiketsu</strong> (清潔) - Szabványosítás: színkódolás, címkék</li>
+                <li><span class="round-num">6.</span> <strong>Shitsuke</strong> (躾) - Fenntartás: tökéletes rend</li>
+            </ul>
+
+            <div class="tip-box">
+                <strong>🎯</strong> <span data-i18n-html="welcomeTip"><strong>Cél:</strong> Figyeld meg, hogyan javul az időd és csökkennek a hibáid minden 5S lépés után!</span>
+            </div>
+        </div>
+
+        <div class="welcome-question" data-i18n="welcomeReady">Készen állsz?</div>
+
+        <div class="welcome-actions">
+            <button class="btn btn-primary btn-large" onclick="startFromWelcome()" data-i18n="welcomeStart">Igen, kezdjük!</button>
+        </div>
+    </div>
+</div>
+
+<!-- ROUND END OVERLAY -->
+<div class="overlay round-end-overlay" id="roundEndOverlay">
+    <div class="overlay-panel round-end-panel">
+        <h2 id="roundEndTitle" data-i18n="roundComplete">Forduló Vége!</h2>
+
+        <div class="results-grid">
+            <div class="result-item">
+                <span class="result-label" data-i18n="yourTime">Időd:</span>
+                <span class="result-value" id="resultTime">0.0s</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label" data-i18n="yourErrors">Hibáid:</span>
+                <span class="result-value" id="resultErrors">0</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label" data-i18n="yourScore">Pontszámod:</span>
+                <span class="result-value" id="resultScore">0</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label" data-i18n="improvementVsPrev">Javulás:</span>
+                <span class="result-value" id="resultImprovement">-</span>
+            </div>
+        </div>
+
+        <div class="achievement-badge" id="achievementBadge" style="display:none;"></div>
+
+        <div class="s-explanation" id="sExplanation"></div>
+
+        <div class="round-end-actions">
+            <button class="btn btn-primary btn-large" id="btnNextRound" onclick="nextRound()">Következő forduló →</button>
+            <button class="btn btn-secondary" onclick="showStats()">📊 <span data-i18n="btnStats">Statisztika</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- STATISTICS OVERLAY -->
+<div class="overlay stats-overlay" id="statsOverlay">
+    <div class="overlay-panel stats-panel">
+        <h2 data-i18n="statsTitle">5S Előrehaladás</h2>
+
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th data-i18n="roundCol">Forduló</th>
+                    <th data-i18n="sStepCol">5S Lépés</th>
+                    <th data-i18n="timeCol">Idő</th>
+                    <th data-i18n="errorsCol">Hibák</th>
+                    <th data-i18n="scoreCol">Pontszám</th>
+                    <th data-i18n="improvementCol">Javulás</th>
+                </tr>
+            </thead>
+            <tbody id="statsBody">
+            </tbody>
+        </table>
+
+        <div class="stats-actions">
+            <button class="btn btn-primary" onclick="closeStats()" data-i18n="btnClose">Bezárás</button>
+        </div>
+    </div>
+</div>
+
+<!-- CONFETTI CONTAINER (dynamically populated) -->
+
+<!-- SCRIPTS -->
+<script src="js/constants.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/game-engine.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
