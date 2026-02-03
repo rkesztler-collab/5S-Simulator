@@ -633,14 +633,14 @@ function showRoundEndOverlay(result, achievements) {
     const nextBtnEl = document.getElementById('btnNextRound');
 
     if (!isGameComplete && gameState.round < 6) {
-        const nextRound = gameState.round + 1;
-        const principle = get5SPrinciple(nextRound);
-        const nextName = getRoundName(nextRound);
+        const nextRoundNum = gameState.round + 1;
+        const principle = get5SPrinciple(nextRoundNum);
+        const nextName = getRoundName(nextRoundNum);
 
         explanationEl.innerHTML = `
             <div class="next-round-preview">
                 <strong>${t('nextRound')}: ${nextName}</strong>
-                <p>${getRoundDescription(nextRound)}</p>
+                <p>${getRoundDescription(nextRoundNum)}</p>
                 ${principle ? `<p class="principle">${principle}</p>` : ''}
             </div>
         `;
